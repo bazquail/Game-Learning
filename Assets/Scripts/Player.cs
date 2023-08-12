@@ -7,44 +7,35 @@ using UnityEngine.Rendering;
 
 public class Player : MonoBehaviour
 {
-    [SerializeField] float moveSpeed = 10f;
-    [SerializeField] float playerRadius = 0.9f;
-    [SerializeField] float playerHeight = 3f;
+    [SerializeField] float moveSpeed = 1000f;
+    [SerializeField] float rotateSpeed = 10f;
+    [SerializeField] float slowDown = 0.9f;
+    [SerializeField] float maxVelocity = 10f;
     [SerializeField] GameInput gameInput;
+    Rigidbody rb;
     bool isWalking;
-    private void Update()
+
+    void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+    }
+    private void FixedUpdate()
     {
         Vector2 inputVector = gameInput.GetMovementVectorNormalized();
-
-        Vector3 moveDirX = new Vector3(inputVector.x, 0f, 0f);
-        Vector3 moveDirY = new Vector3(0f, 0f, inputVector.y);
+        Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
+        isWalking = moveDir != Vector3.zero;
 
         float moveDistance = moveSpeed * Time.deltaTime;
 
-        bool canMoveX = CanMove(moveDirX, moveDistance);
-        bool canMoveY = CanMove(moveDirY, moveDistance);
-
-        Vector3 moveDir = new Vector3(0f, 0f, 0f);
-        if (canMoveX) 
+        if (isWalking && (rb.velocity.magnitude < maxVelocity))
         {
-            moveDir.x = inputVector.x;
+            rb.AddForce(moveDir * moveDistance);
         }
-        if (canMoveY)
+        if (!isWalking)
         {
-            moveDir.z = inputVector.y;
+            rb.velocity = rb.velocity * slowDown;
         }
-
-        transform.position += moveDir * moveDistance;
-
-        isWalking = moveDir != Vector3.zero;
-
-        float rotateSpeed = 10f;
-        transform.forward = Vector3.Slerp(transform.forward, moveDir, Time.deltaTime * rotateSpeed);
-    }
-
-    bool CanMove(Vector3 dir, float dist)
-    {
-        return !Physics.CapsuleCast(transform.position, transform.position + Vector3.up * playerHeight, playerRadius, dir, dist);
+        //this.GetComponent<Rigidbody>().AddTorque(moveDir * rotateSpeed);
     }
 
     public bool IsWalking() 
