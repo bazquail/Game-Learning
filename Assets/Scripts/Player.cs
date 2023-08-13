@@ -1,17 +1,25 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 
 public class Player : MonoBehaviour
 {
-    [SerializeField] float moveSpeed = 1000f;
+    [SerializeField] float moveSpeed = 10f;
     [SerializeField] float rotateSpeed = 10f;
-    [SerializeField] float slowDown = 0.9f;
+    [SerializeField] float slowDown = 0.85f;
     [SerializeField] float maxVelocity = 10f;
+    [SerializeField] float jumpHeight = 20f;
+    [SerializeField] float gravityScale = 5f;
+    [SerializeField] LayerMask groundLayer;
+    [SerializeField] float raycastDist = 0.6f;
     [SerializeField] GameInput gameInput;
+    bool isWalkingAnim = false;
+    bool isGrounded = true;
     Rigidbody rb;
     bool isWalking;
 
@@ -21,25 +29,63 @@ public class Player : MonoBehaviour
     }
     private void FixedUpdate()
     {
+        Gravity();
+        GroundCheck();
         Vector2 inputVector = gameInput.GetMovementVectorNormalized();
         Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
         isWalking = moveDir != Vector3.zero;
 
-        float moveDistance = moveSpeed * Time.deltaTime;
+        if (isWalking && isGrounded)
+        {
+            isWalkingAnim = true;
+        }
+        else{
+            isWalkingAnim = false;
+        }
 
-        if (isWalking && (rb.velocity.magnitude < maxVelocity))
+        if (isWalking)
         {
-            rb.AddForce(moveDir * moveDistance);
+            float firstVx = rb.velocity.x;
+            float firstVz = rb.velocity.z;
+            float secondVx = moveDir.x * moveSpeed;
+            float secondVz = moveDir.z * moveSpeed;
+
+            rb.velocity = new Vector3(Mathf.Lerp(firstVx, secondVx, 0.1f), rb.velocity.y, Mathf.Lerp(firstVz, secondVz, 0.1f));
         }
-        if (!isWalking)
+        else
         {
-            rb.velocity = rb.velocity * slowDown;
+            rb.velocity = new Vector3(rb.velocity.x * slowDown, rb.velocity.y, rb.velocity.z * slowDown);
         }
-        //this.GetComponent<Rigidbody>().AddTorque(moveDir * rotateSpeed);
+        Debug.Log(rb.velocity.magnitude);
     }
 
-    public bool IsWalking() 
+    void Gravity()
     {
-        return isWalking;
+        rb.AddForce(Physics.gravity * (gravityScale - 1) * rb.mass);
+    }
+
+    void GroundCheck()
+    {
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, Vector3.down, out hit, raycastDist, groundLayer))
+        {
+            isGrounded = true;
+        }
+        else{
+            isGrounded = false;
+        }
+    }
+
+    public bool IsWalkingAnim() 
+    {
+        return isWalkingAnim;
+    }
+
+    public void Jump()
+    {
+        if (isGrounded)
+        {
+            rb.velocity = new Vector3(rb.velocity.x, jumpHeight, rb.velocity.z);
+        }
     }
 }

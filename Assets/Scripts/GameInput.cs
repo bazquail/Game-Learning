@@ -1,14 +1,20 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class GameInput : MonoBehaviour
 {
     PlayerInputActions playerInputActions;
+    [SerializeField] Player player;
     void Awake()
     {
         playerInputActions = new PlayerInputActions();
-        playerInputActions.Player.Enable();
+    }
+
+    void Update()
+    {
+        if (playerInputActions.Player.Jump.triggered)
+        {
+            Jump();
+        }
     }
     public Vector2 GetMovementVectorNormalized()
     {
@@ -17,5 +23,20 @@ public class GameInput : MonoBehaviour
         inputVector = inputVector.normalized;
 
         return inputVector;
+    }
+
+    void Jump()
+    {
+        player.Jump();
+    }
+
+    void OnEnable()
+    {
+        playerInputActions.Enable();
+    }
+
+    void OnDisable()
+    {
+        playerInputActions.Disable();
     }
 }
