@@ -16,7 +16,7 @@ public class Player : MonoBehaviour
     [SerializeField] float jumpHeight = 20f;
     [SerializeField] float gravityScale = 5f;
     [SerializeField] LayerMask groundLayer;
-    [SerializeField] float raycastDist = 0.6f;
+    [SerializeField] float raycastDist = 2.25f;
     [SerializeField] GameInput gameInput;
     bool isWalkingAnim = false;
     bool isGrounded = true;
@@ -51,12 +51,12 @@ public class Player : MonoBehaviour
             float secondVz = moveDir.z * moveSpeed;
 
             rb.velocity = new Vector3(Mathf.Lerp(firstVx, secondVx, 0.1f), rb.velocity.y, Mathf.Lerp(firstVz, secondVz, 0.1f));
+            transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(moveDir), 0.25f);
         }
         else
         {
             rb.velocity = new Vector3(rb.velocity.x * slowDown, rb.velocity.y, rb.velocity.z * slowDown);
         }
-        Debug.Log(rb.velocity.magnitude);
     }
 
     void Gravity()
@@ -83,8 +83,10 @@ public class Player : MonoBehaviour
 
     public void Jump()
     {
+        Debug.Log("This one is running, the jump method in player");
         if (isGrounded)
         {
+            Debug.Log("The jump method");
             rb.velocity = new Vector3(rb.velocity.x, jumpHeight, rb.velocity.z);
         }
     }
