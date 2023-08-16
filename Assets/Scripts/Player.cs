@@ -16,15 +16,17 @@ public class Player : MonoBehaviour
     [SerializeField] float jumpHeight = 20f;
     [SerializeField] float gravityScale = 5f;
     [SerializeField] LayerMask groundLayer;
-    [SerializeField] float raycastDist = 2.25f;
+    [SerializeField] float raycastDist = 0.6f;
     [SerializeField] GameInput gameInput;
     bool isWalkingAnim = false;
     bool isGrounded = true;
     Rigidbody rb;
+    Animator animator;
     bool isWalking;
 
     void Awake()
     {
+        animator = GetComponentInChildren<Animator>();
         rb = GetComponent<Rigidbody>();
     }
     private void FixedUpdate()
@@ -37,12 +39,12 @@ public class Player : MonoBehaviour
 
         if (isWalking && isGrounded)
         {
-            isWalkingAnim = true;
+            animator.SetBool("IsRunning 0", true);
         }
-        else{
-            isWalkingAnim = false;
+        else
+        {
+            animator.SetBool("IsRunning 0", false);
         }
-
         if (isWalking)
         {
             float firstVx = rb.velocity.x;
@@ -73,6 +75,7 @@ public class Player : MonoBehaviour
         }
         else{
             isGrounded = false;
+            animator.SetBool("IsRunning 0", false);
         }
     }
 
