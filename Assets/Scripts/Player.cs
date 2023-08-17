@@ -11,18 +11,19 @@ public class Player : MonoBehaviour
 {
     [SerializeField] float moveSpeed = 10f;
     [SerializeField] float rotateSpeed = 10f;
-    [SerializeField] float slowDown = 0.85f;
+    [SerializeField] float slowDown = 0.8f;
     [SerializeField] float maxVelocity = 10f;
     [SerializeField] float jumpHeight = 20f;
     [SerializeField] float gravityScale = 5f;
     [SerializeField] LayerMask groundLayer;
-    [SerializeField] float raycastDist = 0.6f;
+    [SerializeField] float raycastDist = 0.7f;
     [SerializeField] GameInput gameInput;
-    bool isWalkingAnim = false;
+    float timeSinceLastJump = 0;
+    float timeSinceLanding = 0;
     bool isGrounded = true;
     Rigidbody rb;
     Animator animator;
-    bool isWalking;
+    bool isRunning;
 
     void Awake()
     {
@@ -31,21 +32,25 @@ public class Player : MonoBehaviour
     }
     private void FixedUpdate()
     {
+        float test = 4f;
         Gravity();
         GroundCheck();
         Vector2 inputVector = gameInput.GetMovementVectorNormalized();
         Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
-        isWalking = moveDir != Vector3.zero;
 
-        if (isWalking && isGrounded)
+        bool movingX = (rb.velocity.x > test) || (rb.velocity.x < -test);
+        bool movingZ = (rb.velocity.z > test) || (rb.velocity.z < -test);
+        
+        if ((movingX || movingZ) && isGrounded)
         {
-            animator.SetBool("IsRunning 0", true);
+            isRunning = true;
         }
         else
         {
-            animator.SetBool("IsRunning 0", false);
+            isRunning = false;
         }
-        if (isWalking)
+
+        if (moveDir != Vector3.zero)
         {
             float firstVx = rb.velocity.x;
             float firstVz = rb.velocity.z;
@@ -72,24 +77,48 @@ public class Player : MonoBehaviour
         if (Physics.Raycast(transform.position, Vector3.down, out hit, raycastDist, groundLayer))
         {
             isGrounded = true;
+            animator.SetBool("IsFalling", false);
+            animator.SetBool("IsJumping", false);
+            if (isRunning)
+            {
+                animator.SetBool("IsRunning", true);
+            }
+            else
+            {
+                animator.SetBool("IsRunning", false);
+            }
+
+            if (timeSinceLastJump > 0.4)
+            {
+                animator.SetBool("IsLanding", true);
+                timeSinceLanding = 0;
+            }
+            if (timeSinceLanding > 0.1)
+            {
+                animator.SetBool("IsLanding", false);
+            }
+            timeSinceLastJump = 0;
+            timeSinceLanding += Time.deltaTime;
         }
         else{
             isGrounded = false;
-            animator.SetBool("IsRunning 0", false);
+            animator.SetBool("IsRunning", false);
+            timeSinceLastJump += Time.deltaTime;
+            Debug.Log(timeSinceLastJump);
+            if (timeSinceLastJump > 0.4)
+            {
+                animator.SetBool("IsJumping", false);
+                animator.SetBool("IsFalling", true);
+            }
         }
-    }
-
-    public bool IsWalkingAnim() 
-    {
-        return isWalkingAnim;
     }
 
     public void Jump()
     {
-        Debug.Log("This one is running, the jump method in player");
         if (isGrounded)
         {
-            Debug.Log("The jump method");
+            animator.SetBool("IsLanding", false);
+            animator.SetBool("IsJumping", true);
             rb.velocity = new Vector3(rb.velocity.x, jumpHeight, rb.velocity.z);
         }
     }
