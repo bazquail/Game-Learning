@@ -21,6 +21,7 @@ public class Player : MonoBehaviour
     float timeSinceLastJump = 0;
     float timeSinceLanding = 0;
     bool isGrounded = true;
+    Rigidbody objRb;
     Rigidbody rb;
     Animator animator;
     bool isRunning;
@@ -32,11 +33,19 @@ public class Player : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        float test = 4f;
-        Gravity();
-        GroundCheck();
+        float test = 2f;
         Vector2 inputVector = gameInput.GetMovementVectorNormalized();
         Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
+
+        float objx = 0;
+        float objz = 0;
+        if (objRb != null)
+        {
+            objx = objRb.velocity.x;
+            objz = objRb.velocity.z;
+        }
+
+        test += (float) Math.Sqrt(objx*objx + objz*objz);
 
         bool movingX = (rb.velocity.x > test) || (rb.velocity.x < -test);
         bool movingZ = (rb.velocity.z > test) || (rb.velocity.z < -test);
@@ -44,26 +53,39 @@ public class Player : MonoBehaviour
         if ((movingX || movingZ) && isGrounded)
         {
             isRunning = true;
+            animator.SetBool("IsRunning", true);
         }
         else
         {
-            isRunning = false;
+            animator.SetBool("IsRunning", false);
+            animator.ResetTrigger("LandRun");
         }
+
+        if (!movingX && !movingZ)
+        {
+            animator.SetBool("IsIdle", true);
+        }
+
+        
+            float firstVx = rb.velocity.x;
+            float firstVz = rb.velocity.z;
+            float secondVx = (moveDir.x * moveSpeed) + objx;
+            float secondVz = (moveDir.z * moveSpeed) + objz;
+
+            rb.velocity = new Vector3(Mathf.Lerp(firstVx, secondVx, 0.2f), rb.velocity.y, Mathf.Lerp(firstVz, secondVz, 0.2f));
 
         if (moveDir != Vector3.zero)
         {
-            float firstVx = rb.velocity.x;
-            float firstVz = rb.velocity.z;
-            float secondVx = moveDir.x * moveSpeed;
-            float secondVz = moveDir.z * moveSpeed;
-
-            rb.velocity = new Vector3(Mathf.Lerp(firstVx, secondVx, 0.1f), rb.velocity.y, Mathf.Lerp(firstVz, secondVz, 0.1f));
             transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(moveDir), 0.25f);
+            animator.SetBool("IsIdle", false);
         }
         else
         {
-            rb.velocity = new Vector3(rb.velocity.x * slowDown, rb.velocity.y, rb.velocity.z * slowDown);
+            //rb.velocity = new Vector3(rb.velocity.x * slowDown, rb.velocity.y, rb.velocity.z * slowDown);
+            isRunning = false;
         }
+        Gravity();
+        GroundCheck();
     }
 
     void Gravity()
@@ -76,38 +98,31 @@ public class Player : MonoBehaviour
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit, raycastDist, groundLayer))
         {
+            GetVelocityOfHit(hit);
             isGrounded = true;
             animator.SetBool("IsFalling", false);
-            animator.SetBool("IsJumping", false);
-            if (isRunning)
+
+            if (isRunning && timeSinceLastJump > 0.2)
             {
-                animator.SetBool("IsRunning", true);
+                animator.SetTrigger("LandRun");
+                animator.ResetTrigger("Jump");
             }
-            else
+            else if (timeSinceLastJump > 0.2)
             {
-                animator.SetBool("IsRunning", false);
+                animator.SetTrigger("Land");
+                animator.ResetTrigger("Jump");
             }
 
-            if (timeSinceLastJump > 0.4)
-            {
-                animator.SetBool("IsLanding", true);
-                timeSinceLanding = 0;
-            }
-            if (timeSinceLanding > 0.1)
-            {
-                animator.SetBool("IsLanding", false);
-            }
             timeSinceLastJump = 0;
-            timeSinceLanding += Time.deltaTime;
         }
-        else{
+        else
+        {
+            objRb = null;
             isGrounded = false;
             animator.SetBool("IsRunning", false);
             timeSinceLastJump += Time.deltaTime;
-            Debug.Log(timeSinceLastJump);
             if (timeSinceLastJump > 0.4)
             {
-                animator.SetBool("IsJumping", false);
                 animator.SetBool("IsFalling", true);
             }
         }
@@ -117,9 +132,19 @@ public class Player : MonoBehaviour
     {
         if (isGrounded)
         {
-            animator.SetBool("IsLanding", false);
-            animator.SetBool("IsJumping", true);
+            animator.ResetTrigger("Land");
+            animator.ResetTrigger("LandRun");
+            animator.SetTrigger("Jump");
             rb.velocity = new Vector3(rb.velocity.x, jumpHeight, rb.velocity.z);
         }
+    }
+
+    void GetVelocityOfHit(RaycastHit hit)
+    {
+        objRb = hit.transform.gameObject.GetComponent<Rigidbody>();
+
+        // will need to get velocity in x and z of object bean is on
+        // then set the beans "0" velocity to that when checking for its velocity
+        // essentially, have a set velocity method that will do everything (the lerps, 0 checks) as above but adding in the components of the objects velocity
     }
 }

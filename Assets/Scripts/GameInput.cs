@@ -13,7 +13,6 @@ public class GameInput : MonoBehaviour
     {
         if (playerInputActions.Player.Jump.triggered)
         {
-            Debug.Log("This update function runs, jump is being called");
             Jump();
         }
     }
