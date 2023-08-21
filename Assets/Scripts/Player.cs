@@ -25,6 +25,9 @@ public class Player : MonoBehaviour
     Rigidbody rb;
     Animator animator;
     bool isRunning;
+    float lastY = 0;
+    Vector3 posDif;
+    float deltaTheta = 0;
 
     void Awake()
     {
@@ -39,10 +42,70 @@ public class Player : MonoBehaviour
 
         float objx = 0;
         float objz = 0;
-        if (objRb != null)
+        if (objRb != null && deltaTheta != 0)
+        {
+            deltaTheta = objRb.rotation.eulerAngles.y - lastY;
+            lastY = objRb.rotation.eulerAngles.y;
+
+            float objxPos = objRb.position.x;
+            float objzPos = objRb.position.z;
+
+            float pxPos = rb.position.x;
+            float pzPos = rb.position.z;
+
+            posDif = new Vector3(pxPos - objxPos, 0, pzPos - objzPos);
+
+            float xDir = 1;
+            float zDir = 1;
+
+            if (deltaTheta > 0 && objRb.rotation.eulerAngles.y > 180 && objRb.rotation.eulerAngles.y < 360)
+            {
+
+            } 
+            else if (deltaTheta < 0 && objRb.rotation.eulerAngles.y > 0 && objRb.rotation.eulerAngles.y < 180)
+            {
+
+            }
+            else
+            {
+                xDir *= -1;
+            }
+
+            if (deltaTheta > 0 && ((objRb.rotation.eulerAngles.y > 0 && objRb.rotation.eulerAngles.y < 90) || (objRb.rotation.eulerAngles.y > 270 && objRb.rotation.eulerAngles.y < 360)))
+            {
+
+            } 
+            else if (deltaTheta < 0 && objRb.rotation.eulerAngles.y > 90 && objRb.rotation.eulerAngles.y < 270)
+            {
+
+            }
+            else
+            {
+                zDir *= -1;
+            }
+
+            float rbXNew = (float) (objRb.position.x + xDir*posDif.magnitude*Math.Cos(deltaTheta));
+            float rbZNew = (float) (objRb.position.z + zDir*posDif.magnitude*Math.Sin(deltaTheta));
+
+            rb.position = new Vector3(rbXNew, rb.position.y, rbZNew);
+            Debug.Log(xDir*posDif.magnitude*Math.Cos(deltaTheta));
+
+            objx = objRb.velocity.x;
+            objz = objRb.velocity.z;
+
+        }
+        else if (objRb != null)
         {
             objx = objRb.velocity.x;
             objz = objRb.velocity.z;
+
+            deltaTheta = objRb.rotation.eulerAngles.y - lastY;
+            lastY = objRb.rotation.eulerAngles.y;
+        }
+        else
+        {
+            deltaTheta = 0;
+            lastY = 0;
         }
 
         test += (float) Math.Sqrt(objx*objx + objz*objz);
@@ -67,12 +130,12 @@ public class Player : MonoBehaviour
         }
 
         
-            float firstVx = rb.velocity.x;
-            float firstVz = rb.velocity.z;
-            float secondVx = (moveDir.x * moveSpeed) + objx;
-            float secondVz = (moveDir.z * moveSpeed) + objz;
+        float firstVx = rb.velocity.x;
+        float firstVz = rb.velocity.z;
+        float secondVx = (moveDir.x * moveSpeed) + objx;
+        float secondVz = (moveDir.z * moveSpeed) + objz;
 
-            rb.velocity = new Vector3(Mathf.Lerp(firstVx, secondVx, 0.2f), rb.velocity.y, Mathf.Lerp(firstVz, secondVz, 0.2f));
+        rb.velocity = new Vector3(Mathf.Lerp(firstVx, secondVx, 0.2f), rb.velocity.y, Mathf.Lerp(firstVz, secondVz, 0.2f));
 
         if (moveDir != Vector3.zero)
         {
@@ -142,6 +205,7 @@ public class Player : MonoBehaviour
     void GetVelocityOfHit(RaycastHit hit)
     {
         objRb = hit.transform.gameObject.GetComponent<Rigidbody>();
+        lastY = objRb.rotation.eulerAngles.y;
 
         // will need to get velocity in x and z of object bean is on
         // then set the beans "0" velocity to that when checking for its velocity
