@@ -25,6 +25,7 @@ public class Player : MonoBehaviour
     Rigidbody rb;
     Animator animator;
     bool isRunning;
+    float initY;
     float lastY = 0;
     Vector3 posDif;
     float deltaTheta = 0;
@@ -84,11 +85,10 @@ public class Player : MonoBehaviour
                 zDir *= -1;
             }
 
-            float rbXNew = (float) (objRb.position.x + xDir*posDif.magnitude*Math.Cos(deltaTheta));
-            float rbZNew = (float) (objRb.position.z + zDir*posDif.magnitude*Math.Sin(deltaTheta));
+            float rbXNew = (float) (rb.position.x + xDir*posDif.magnitude*Math.Cos(deltaTheta));
+            float rbZNew = (float) (rb.position.z + zDir*posDif.magnitude*Math.Sin(deltaTheta));
 
-            rb.position = new Vector3(rbXNew, rb.position.y, rbZNew);
-            Debug.Log(xDir*posDif.magnitude*Math.Cos(deltaTheta));
+            rb.position = new Vector3(Mathf.Lerp(rb.position.x, rbXNew, 0.05f), rb.position.y, Mathf.Lerp(rb.position.z, rbZNew, 0.05f));
 
             objx = objRb.velocity.x;
             objz = objRb.velocity.z;
@@ -99,7 +99,7 @@ public class Player : MonoBehaviour
             objx = objRb.velocity.x;
             objz = objRb.velocity.z;
 
-            deltaTheta = objRb.rotation.eulerAngles.y - lastY;
+            deltaTheta = objRb.rotation.eulerAngles.y - initY;
             lastY = objRb.rotation.eulerAngles.y;
         }
         else
@@ -205,7 +205,7 @@ public class Player : MonoBehaviour
     void GetVelocityOfHit(RaycastHit hit)
     {
         objRb = hit.transform.gameObject.GetComponent<Rigidbody>();
-        lastY = objRb.rotation.eulerAngles.y;
+        initY = objRb.rotation.eulerAngles.y;
 
         // will need to get velocity in x and z of object bean is on
         // then set the beans "0" velocity to that when checking for its velocity
