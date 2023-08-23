@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using JetBrains.Annotations;
+using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -63,7 +64,7 @@ public class Player : MonoBehaviour
             if (posDif.x > 0 && posDif.z > 0)
             {
                 // x dec, z inc
-                zDir *= -1;
+                xDir *= -1;
             } 
             else if (posDif.x < 0 && posDif.z > 0)
             {
@@ -74,23 +75,20 @@ public class Player : MonoBehaviour
             else if (posDif.x < 0 && posDif.z < 0)
             {
                 // x inc, z dec
-                xDir *= -1;
+                zDir *= 1;
             }
             else if (posDif.x > 0 && posDif.z < 0)
             {
                 // x inc, z inc
-                zDir *= -1;
+                zDir *= 1;
             }
-            if (deltaTheta < 0)
-            {
-                xDir *= -1;
-                zDir *= -1;
-            }
+            xDir *= -1;
+            zDir *= -1;
+
             float angle = (float) Math.Acos(posDif.x/posDif.magnitude);
             float rads = objRb.angularVelocity.y;
-            rbXvel = (float) (xDir*posDif.magnitude*rads*Math.Cos(angle));
-            rbZvel = (float) (zDir*posDif.magnitude*rads*Math.Sin(angle));
-            Debug.Log($"{angle} {rbXvel} {rbZvel}");
+            rbXvel = (float) (xDir*posDif.magnitude*rads*Math.Sin(angle));
+            rbZvel = (float) (zDir*posDif.magnitude*rads*Math.Cos(angle));
 
             objx = objRb.velocity.x;
             objz = objRb.velocity.z;
@@ -145,6 +143,18 @@ public class Player : MonoBehaviour
         }
         else
         {
+            if (objRb != null && deltaTheta != 0)
+            {
+                //Vector3 looking = new Vector3(posDif.x + transform.rotation.eulerAngles.x, 0, posDif.z + transform.rotation.eulerAngles.z);
+                float top = (transform.forward.x * transform.forward.z) + (posDif.x * posDif.z);
+                float bottom = transform.forward.magnitude * posDif.magnitude;
+                float angleBetween = (float) Math.Acos(top/bottom);
+                Debug.Log($"{top} {bottom} {angleBetween*180/Math.PI}");
+                float xP = (float) (transform.forward.x*Math.Cos(angleBetween) - transform.forward.z*Math.Sin(angleBetween));
+                float zP = (float) (transform.forward.x*Math.Sin(angleBetween) + transform.forward.z*Math.Cos(angleBetween));
+                Vector3 lookRotation = new Vector3(xP, 0, zP);
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(lookRotation), 0.25f);
+            }
             //rb.velocity = new Vector3(rb.velocity.x * slowDown, rb.velocity.y, rb.velocity.z * slowDown);
             isRunning = false;
         }
