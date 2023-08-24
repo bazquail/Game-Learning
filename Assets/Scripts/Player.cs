@@ -37,7 +37,7 @@ public class Player : MonoBehaviour
     }
     private void FixedUpdate()
     {
-        float test = 2f;
+        float test = 1f;
         Vector2 inputVector = gameInput.GetMovementVectorNormalized();
         Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
 
@@ -45,6 +45,7 @@ public class Player : MonoBehaviour
         float objz = 0;
         float rbXvel = 0;
         float rbZvel = 0;
+        float rads = 0;
         if (objRb != null && deltaTheta != 0)
         {
             deltaTheta = objRb.rotation.eulerAngles.y - lastY;
@@ -86,7 +87,8 @@ public class Player : MonoBehaviour
             zDir *= -1;
 
             float angle = (float) Math.Acos(posDif.x/posDif.magnitude);
-            float rads = objRb.angularVelocity.y;
+            rads = objRb.angularVelocity.y;
+            Debug.Log(rads);
             rbXvel = (float) (xDir*posDif.magnitude*rads*Math.Sin(angle));
             rbZvel = (float) (zDir*posDif.magnitude*rads*Math.Cos(angle));
 
@@ -107,10 +109,9 @@ public class Player : MonoBehaviour
             deltaTheta = 0;
             lastY = 0;
         }
-        test += (float) Math.Sqrt(objx*objx + objz*objz);
 
-        bool movingX = (rb.velocity.x > test) || (rb.velocity.x < -test);
-        bool movingZ = (rb.velocity.z > test) || (rb.velocity.z < -test);
+        bool movingX = (rb.velocity.x > objx + rbXvel + test) || (rb.velocity.x < objx + rbXvel - test);
+        bool movingZ = (rb.velocity.z > objz + rbZvel + test) || (rb.velocity.z < objz + rbZvel - test);
         
         if ((movingX || movingZ) && isGrounded)
         {
@@ -131,10 +132,10 @@ public class Player : MonoBehaviour
         
         float firstVx = rb.velocity.x;
         float firstVz = rb.velocity.z;
-        float secondVx = (moveDir.x * moveSpeed) + objx + rbXvel;
-        float secondVz = (moveDir.z * moveSpeed) + objz + rbZvel;
+        float secondVx = (moveDir.x * moveSpeed) + objx;
+        float secondVz = (moveDir.z * moveSpeed) + objz;
 
-        rb.velocity = new Vector3(Mathf.Lerp(firstVx, secondVx, 0.4f), rb.velocity.y, Mathf.Lerp(firstVz, secondVz, 0.4f));
+        rb.velocity = new Vector3(Mathf.Lerp(firstVx, secondVx, 1f) + rbXvel, rb.velocity.y, Mathf.Lerp(firstVz, secondVz, 1f) + rbZvel);
 
         if (moveDir != Vector3.zero)
         {
@@ -145,21 +146,17 @@ public class Player : MonoBehaviour
         {
             if (objRb != null && deltaTheta != 0)
             {
-                //Vector3 looking = new Vector3(posDif.x + transform.rotation.eulerAngles.x, 0, posDif.z + transform.rotation.eulerAngles.z);
-                float top = (transform.forward.x * transform.forward.z) + (posDif.x * posDif.z);
-                float bottom = transform.forward.magnitude * posDif.magnitude;
-                float angleBetween = (float) Math.Acos(top/bottom);
-                Debug.Log($"{top} {bottom} {angleBetween*180/Math.PI}");
-                float xP = (float) (transform.forward.x*Math.Cos(angleBetween) - transform.forward.z*Math.Sin(angleBetween));
-                float zP = (float) (transform.forward.x*Math.Sin(angleBetween) + transform.forward.z*Math.Cos(angleBetween));
-                Vector3 lookRotation = new Vector3(xP, 0, zP);
-                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(lookRotation), 0.25f);
+                rb.angularVelocity = new Vector3(rb.angularVelocity.x, rads, rb.angularVelocity.z);
+            }
+            else
+            {
+                rb.angularVelocity = new Vector3(rb.angularVelocity.x, 0, rb.angularVelocity.z);
             }
             //rb.velocity = new Vector3(rb.velocity.x * slowDown, rb.velocity.y, rb.velocity.z * slowDown);
             isRunning = false;
         }
         Gravity();
-        GroundCheck();
+        GroundCheck(movingX, movingZ);
     }
 
     void Gravity()
@@ -167,7 +164,7 @@ public class Player : MonoBehaviour
         rb.AddForce(Physics.gravity * (gravityScale - 1) * rb.mass);
     }
 
-    void GroundCheck()
+    void GroundCheck(bool movx, bool movz)
     {
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit, raycastDist, groundLayer))
@@ -176,7 +173,7 @@ public class Player : MonoBehaviour
             isGrounded = true;
             animator.SetBool("IsFalling", false);
 
-            if (isRunning && timeSinceLastJump > 0.2)
+            if ((movx || movz) && timeSinceLastJump > 0.2)
             {
                 animator.SetTrigger("LandRun");
                 animator.ResetTrigger("Jump");
